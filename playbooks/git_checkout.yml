@@ -1,0 +1,12 @@
+- hosts: all
+  environment:
+    PYTHONPATH: "{{ lookup('env','PYTHONPATH') }}:/usr/local/lib/python2.7/dist-packages:/usr/local/lib/python2.7/site-packages"
+
+  tasks:
+    - name: checkout some private code
+      git:
+        repo: git@github.com:conjurinc/evoke.git
+        dest: /src/ansible-demo/evoke
+        key_file: "{{ lookup('env','SSH_KEY') }}"
+        accept_hostkey: yes
+        force: yes

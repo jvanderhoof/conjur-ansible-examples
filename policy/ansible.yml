@@ -1,0 +1,32 @@
+# ansible.yml
+- !policy
+  id: ansible
+  body:
+  # define a YAML collection `keys` to hold our ssh key variables
+  - &keys
+    # create variables to hold the private key
+    - !variable staging/foo/ssh_private_key
+    - !variable staging/bar/ssh_private_key
+    - !variable production/foo/ssh_private_key
+    - !variable production/bar/ssh_private_key
+
+  # create a group to with permission to retrieve SSH keys
+  - !group secrets-users
+
+  # Give the `secrets-users` group read/execute privilege (read provides visibility, execute allows retrieval of the value) to the variables stored in the `keys` collection defined above
+  - !permit
+    role: !group secrets-users
+    privileges: [ read, execute ]
+    resource: *keys
+
+  # A layer defines a group of one or more machines. We'll use this group to give our Ansible Controller access to the above SSH private keys.
+  - !layer
+
+  # Define a host factory for this layer. A host factory allows us to generate a short lived, IP restricted token to auto-enroll our Ansible Controller into our Ansible layer
+  - !host-factory
+    layer: [ !layer ]
+
+  # Now let's give this layer the ability to retrieve the SSH private key
+  - !grant
+    member: !layer
+    role: !group secrets-users

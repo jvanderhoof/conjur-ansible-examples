@@ -1,0 +1,48 @@
+version: '3'
+services:
+  pg:
+    image: postgres:9.3
+
+  conjur:
+    image: cyberark/conjur
+    command: server -a demo-policy -p 3000
+    environment:
+      CONJUR_APPLIANCE_URL: http://localhost:3000
+      DATABASE_URL: postgres://postgres@pg/postgres
+      CONJUR_DATA_KEY: "W0BuL8iTr/7QvtjIluJbrb5LDAnmXzmcpxkqihO3dXA="
+    ports:
+      - "3000:3000"
+    networks:
+      - default
+    links:
+      - pg
+
+  conjur_cli:
+    image: conjurinc/cli5
+    environment:
+      CONJUR_APPLIANCE_URL: http://conjur:3000
+      CONJUR_ACCOUNT: demo-policy
+      CONJUR_AUTHN_LOGIN: admin
+    volumes:
+      - ./policy:/src/policy
+      - .:/src/ansible-demo
+    links:
+      - conjur
+
+  # myapp_staging:
+  #   build: ./test_app
+  #   entrypoint: sleep
+  #   command: infinity
+  #   ports:
+  #     - 4567
+  #   environment:
+  #     RACK_ENV: staging
+  #
+  # myapp_production:
+  #   build: ./test_app
+  #   entrypoint: sleep
+  #   command: infinity
+  #   ports:
+  #     - 4567
+  #   environment:
+  #     RACK_ENV: production

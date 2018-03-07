@@ -1,0 +1,28 @@
+- hosts: all
+  environment:
+    PYTHONPATH: "{{ lookup('env','PYTHONPATH') }}:/usr/local/lib/python2.7/dist-packages:/usr/local/lib/python2.7/site-packages"
+
+  tasks:
+    # - name: Install Docker modules on target box
+    #   pip:
+    #     name: "{{ item }}"
+    #     state: present
+    #   with_items:
+    #     - docker
+
+    - name: Create a Conjur Master
+      docker_container:
+        name: conjur-master
+        hostname: conjur-master
+        image: registry.tld/conjur-appliance:5.0-stable
+        restart_policy: always
+        security_opts:
+          - "seccomp:unconfined"
+        published_ports:
+          - 443:443
+          # - 636:636
+          # - 5432:5432
+          # - 5433:5433
+
+    - name: Configure Conjur master
+      command: docker exec conjur-master evoke configure master -h conjur-master -p secret dev

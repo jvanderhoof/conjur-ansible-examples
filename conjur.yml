@@ -1,0 +1,113 @@
+- hosts: all
+  environment:
+    PYTHONPATH: "{{ lookup('env','PYTHONPATH') }}:/usr/local/lib/python2.7/dist-packages:/usr/local/lib/python2.7/site-packages"
+
+  tasks:
+    # - name: Install Docker modules on target box
+    #   pip:
+    #     name: "{{ item }}"
+    #     state: present
+    #   with_items:
+    #     - docker
+
+    # - name: Create a Conjur Master
+    #   docker_container:
+    #     name: conjur-master
+    #     hostname: conjur-master
+    #     image: registry.tld/conjur-appliance:4.9-stable
+    #     restart_policy: always
+    #     security_opts:
+    #       - "seccomp:unconfined"
+    #     published_ports:
+    #       - 443:443
+    #       # - 636:636
+    #       # - 5432:5432
+    #       # - 5433:5433
+    #
+    # - name: Configure Conjur master
+    #   command: docker exec conjur-master evoke configure master -h conjur-master -p secret dev
+    #
+    # # Generate and export a standby seed file
+    # - name: Generate Standby Seed
+    #   command: docker exec conjur-master bash -c 'evoke seed standby > /tmp/standby-seed.tar'
+    #
+    # - name: Copy Standby Seed file to controller
+    #   command: docker cp conjur-master:/tmp/standby-seed.tar fetched
+    #
+    # - fetch:
+    #     src: /tmp/standby-seed.tar
+    #     dest: fetched/
+    #     flat: yes
+
+    # # Generate and export a follower seed file
+    # - name: Generate Follower Seed
+    #   command: docker exec conjur-master bash -c 'evoke seed follower follower.docker > /tmp/follower-seed.tar'
+    #
+    # - name: Copy Follower Seed file to controller
+    #   command: docker cp conjur-master:/tmp/follower-seed.tar fetched
+    #
+    # - fetch:
+    #     src: /tmp/follower-seed.tar
+    #     dest: fetched/
+    #     flat: yes
+
+
+    # Create and configure a Standby
+    - name: Launch a Conjur Standby
+      docker_container:
+        name: conjur-standby
+        hostname: conjur-standby
+        image: registry.tld/conjur-appliance:4.9-stable
+        restart_policy: always
+        security_opts:
+          - "seccomp:unconfined"
+        published_ports:
+          # - 443:443
+          # - 636:636
+          # - 5432:5432
+          # - 5433:5433
+        links:
+          - conjur-master:conjur-master.docker
+
+    - copy:
+        src: fetched/standby-seed.tar
+        dest: /tmp/standby-seed.tar
+
+    - name: Copy Standby Seed file into container
+      command: docker cp /tmp/standby-seed.tar conjur-standby:/tmp/
+
+    - name: Unpack Standby seed to configure Conjur Standby
+      command: docker exec conjur-standby evoke unpack seed /tmp/standby-seed.tar
+
+    - name: Configure Standby
+      command: docker exec -i conjur-standby evoke configure standby -i 172.17.0.2
+
+
+    # # Create and configure a Follower
+    # - name: Create a Conjur Follower
+    #   docker_container:
+    #     name: conjur-follower
+    #     image: registry.tld/conjur-appliance:4.9-stable
+    #     restart_policy: always
+    #     security_opts:
+    #       - "seccomp:unconfined"
+    #     published_ports:
+    #       # - 443:443
+    #       # - 636:636
+    #       # - 5432:5432
+    #       # - 5433:5433
+    #     links:
+    #       - conjur-master:conjur-master.docker
+    #
+    # - copy:
+    #     src: fetched/follower-seed.tar
+    #     dest: /tmp/follower-seed.tar
+    #
+    # - name: Copy Standby Seed file into container
+    #   command: docker cp /tmp/follower-seed.tar conjur-follower:/tmp/
+    #
+    # - name: Unpack Follower seed to configure Conjur Follower
+    #   command: docker exec conjur-follower evoke unpack seed /tmp/follower-seed.tar
+    #
+    # - name: Configure Standby
+    #   command: docker exec conjur-follower evoke configure follower
